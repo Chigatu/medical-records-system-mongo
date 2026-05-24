@@ -1,0 +1,8 @@
+build/
+build-debug/
+build-release/
+*.o
+*.out
+__pycache__/
+*.pyc
+venv/

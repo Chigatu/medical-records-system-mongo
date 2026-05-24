@@ -1,0 +1,100 @@
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: $worker-threads
+        fs-task-processor:
+            worker_threads: $worker-fs-threads
+
+    default_task_processor: main-task-processor
+
+    components:
+        server:
+            listener:
+                port: $server-port
+                task_processor: main-task-processor
+
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: $logger-level
+                    overflow_behavior: discard
+
+        dynamic-config:
+            defaults:
+                HTTP_CLIENT_CONNECTION_POOL_SIZE: 1000
+
+        testsuite-support: {}
+
+        congestion-control:
+
+        http-client:
+        http-client-core:
+            load-enabled: $is_testing
+            fs-task-processor: fs-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        tests-control:
+            load-enabled: $is-testing
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+
+        handler-ping:
+            path: /ping
+            method: GET
+            task_processor: main-task-processor
+
+        handler-hello:
+            path: /hello
+            method: GET,POST
+            task_processor: main-task-processor
+
+        handler-health:
+            path: /health
+            method: GET
+            task_processor: main-task-processor
+
+        handler-register:
+            path: /api/auth/register
+            method: POST
+            task_processor: main-task-processor
+
+        handler-login:
+            path: /api/auth/login
+            method: POST
+            task_processor: main-task-processor
+
+        handler-create-patient:
+            path: /api/patients
+            method: POST
+            task_processor: main-task-processor
+
+        handler-search-patient:
+            path: /api/patients/search
+            method: GET
+            task_processor: main-task-processor
+
+        handler-create-record:
+            path: /api/medical-records
+            method: POST
+            task_processor: main-task-processor
+
+        handler-get-patient-records:
+            path: /api/medical-records/patient/{patientId}
+            method: GET
+            task_processor: main-task-processor
+
+        postgres-db-1:
+            dbconnection: postgresql://${DB_USER:medical_user}:${DB_PASSWORD:medical_pass}@${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:medical_records}
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+            sync-start: false
+
+        handler-db-health:
+            path: /db/health
+            method: GET
+            task_processor: main-task-processor
