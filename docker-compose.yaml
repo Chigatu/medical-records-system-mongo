@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: medical-db-postgres
+    environment:
+      POSTGRES_DB: medical_records
+      POSTGRES_USER: medical_user
+      POSTGRES_PASSWORD: medical_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/postgres/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/postgres/data.sql:/docker-entrypoint-initdb.d/02-data.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medical_user -d medical_records"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    container_name: medical-db-mongo
+    environment:
+      MONGO_INITDB_DATABASE: medical_records
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+      - ./database/mongo/init.js:/docker-entrypoint-initdb.d/01-init.js:ro
+      - ./database/mongo/data.js:/docker-entrypoint-initdb.d/02-data.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  medical-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: medical-api
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - TZ=UTC
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=medical_records
+      - DB_USER=medical_user
+      - DB_PASSWORD=medical_pass
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_DB=medical_records
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  pgdata:
+  mongodata:
